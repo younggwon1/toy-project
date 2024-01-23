@@ -3,5 +3,5 @@
 - replica 0
 - replica 0 && createDt >= 1 month -> delete
 
-2. namespace : rnd-test
+2. namespace : specific namespace(rnd-test)
 - createDt >= 1 month && re-deploy > 1 weeks && no traffic -> delete
