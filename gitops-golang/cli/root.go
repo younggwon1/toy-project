@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github/younggwon1/gitops-golang/cli/deploy"
+	"github.com/younggwon1/gitops-golang/cli/deploy"
 
 	"github.com/spf13/cobra"
 )

@@ -1,4 +1,4 @@
-package branchcli
+package branch
 
 import (
 	"fmt"
@@ -15,11 +15,11 @@ func Create(repo *git.Repository) (plumbing.ReferenceName, error) {
 	headRef, err := repo.Head()
 	fmt.Println(headRef.Hash())
 	if err != nil {
-		fmt.Println(err)
+		return "", err
 	}
 
-	// newBranchRefName := plumbing.NewBranchReferenceName("gogit-deploy-" + headRef.Hash().String()[:7])
-	newBranchRefName := plumbing.NewBranchReferenceName("gogit-deploy-" + uuid.New().String()[:8])
+	// newBranchRefName := plumbing.NewBranchReferenceName("socops-deploy-" + headRef.Hash().String()[:7])
+	newBranchRefName := plumbing.NewBranchReferenceName("socops-deploy-" + uuid.New().String()[:8])
 	newBranchRef := plumbing.NewHashReference(newBranchRefName, headRef.Hash())
 
 	if err := repo.Storer.SetReference(newBranchRef); err != nil {

@@ -1,15 +1,14 @@
-package pr
+package github
 
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/google/go-github/v58/github"
 )
 
-func AutoCreateAndMerge(organisation string, helmRepo string, branch plumbing.ReferenceName, yamlFile string) error {
+func AutoCreateAndMerge(branch plumbing.ReferenceName, organisation, helmRepo, yamlFile, AccessToken string) error {
 	repoOwner := organisation
 	repoName := helmRepo
 	baseBranch := "main"
@@ -18,7 +17,7 @@ func AutoCreateAndMerge(organisation string, helmRepo string, branch plumbing.Re
 	body := "Updated image tag value in " + yamlFile
 
 	ctx := context.Background()
-	client := github.NewClient(nil).WithAuthToken(os.Getenv("AccessToken"))
+	client := github.NewClient(nil).WithAuthToken(AccessToken)
 
 	pr := &github.NewPullRequest{
 		Title: &title,

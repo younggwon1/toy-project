@@ -1,9 +1,9 @@
-package repository
+package git
 
 import (
-	"fmt"
-	"github/younggwon1/gitops-golang/file"
 	"os"
+
+	"github.com/younggwon1/gitops-golang/file"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -14,7 +14,7 @@ func Clone(userName string, accessToken string, org string, helmRepo string) (*g
 	if exists {
 		err := os.RemoveAll("/tmp/" + helmRepo)
 		if err != nil {
-			fmt.Println(err)
+			return nil, err
 		}
 	}
 	repo, err := git.PlainClone("/tmp/"+helmRepo, false, &git.CloneOptions{
@@ -28,7 +28,7 @@ func Clone(userName string, accessToken string, org string, helmRepo string) (*g
 		Progress: os.Stdout,
 	})
 	if err != nil {
-		return repo, err
+		return nil, err
 	}
 
 	return repo, nil

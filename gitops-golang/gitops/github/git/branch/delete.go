@@ -1,8 +1,7 @@
-package branchcli
+package branch
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -10,20 +9,20 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
-func Delete(repo *git.Repository, branch plumbing.ReferenceName) error {
+func Delete(repo *git.Repository, branch plumbing.ReferenceName, UserName, AccessToken string) error {
 	// Delete remote branch
 	fmt.Println("Start remote branch delete")
 	pushOpts := &git.PushOptions{
 		RefSpecs: []config.RefSpec{config.RefSpec(":" + branch)},
 		Auth: &http.BasicAuth{
-			Username: os.Getenv("Username"),
-			Password: os.Getenv("AccessToken"),
+			Username: UserName,
+			Password: AccessToken,
 		},
 	}
 
 	err := repo.Push(pushOpts)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	fmt.Println("End remote branch delete")
 

@@ -1,4 +1,4 @@
-package gitcli
+package git
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-func Commit(repo *git.Repository, gitUser string, gitUserEmail string, yamlFile string) error {
+func Commit(repo *git.Repository, gitUser, gitUserEmail, yamlFile string) error {
 	w, err := repo.Worktree()
 	if err != nil {
 		return err

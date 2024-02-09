@@ -1,23 +1,18 @@
 package deploy
 
 import (
-	"fmt"
-	"log"
-	"os"
+	"github.com/younggwon1/gitops-golang/file"
+	"github.com/younggwon1/gitops-golang/gitops/github"
+	"github.com/younggwon1/gitops-golang/gitops/github/git"
+	"github.com/younggwon1/gitops-golang/gitops/github/git/branch"
+	"github.com/younggwon1/gitops-golang/util"
 
-	"github/younggwon1/gitops-golang/file"
-	"github/younggwon1/gitops-golang/gitops/github/branchcli"
-	"github/younggwon1/gitops-golang/gitops/github/gitcli"
-	"github/younggwon1/gitops-golang/gitops/github/pr"
-	"github/younggwon1/gitops-golang/gitops/github/repository"
-
-	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
 var (
-	gitUser      string
-	gitUserEmail string
+	user         string
+	userEmail    string
 	organisation string
 	helmRepo     string
 	yamlFile     string
@@ -28,59 +23,57 @@ var Cmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "run deployer server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := godotenv.Load(".env")
-		if err != nil {
-			log.Fatal("Error loading .env file")
-		}
+		UserName := util.GetEnv("UserName", "")
+		AccessToken := util.GetEnv("AccessToken", "")
 
-		repo, err := repository.Clone(
-			os.Getenv("Username"),
-			os.Getenv("AccessToken"),
+		r, err := git.Clone(
+			UserName,
+			AccessToken,
 			organisation,
 			helmRepo,
 		)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		branch, err := branchcli.Create(repo)
+		b, err := branch.Create(r)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		err = branchcli.Checkout(repo, branch)
+		err = branch.Checkout(r, b)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		err = file.ModifyImageTagInYAMLFile(helmRepo, yamlFile, values)
+		err = file.ModifyFromYamlFile(helmRepo, yamlFile, values)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		err = gitcli.Add(repo, helmRepo)
+		err = git.Add(r, helmRepo)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		err = gitcli.Commit(repo, gitUser, gitUserEmail, yamlFile)
+		err = git.Commit(r, user, userEmail, yamlFile)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		err = gitcli.Push(repo)
+		err = git.Push(r, UserName, AccessToken)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		err = pr.AutoCreateAndMerge(organisation, helmRepo, branch, yamlFile)
+		err = github.AutoCreateAndMerge(b, organisation, helmRepo, yamlFile, AccessToken)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		err = branchcli.Delete(repo, branch)
+		err = branch.Delete(r, b, UserName, AccessToken)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
 		return nil
@@ -88,10 +81,10 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	Cmd.Flags().StringVarP(&gitUser, "git-user", "u", "", "github user")
-	Cmd.Flags().StringVarP(&gitUserEmail, "git-email", "e", "", "github user email")
+	Cmd.Flags().StringVarP(&user, "user", "u", "", "github user")
+	Cmd.Flags().StringVarP(&userEmail, "email", "e", "", "github user email")
 	Cmd.Flags().StringVarP(&organisation, "organisation", "o", "", "github organisation")
-	Cmd.Flags().StringVarP(&helmRepo, "repository-name", "r", "", "helm repository")
-	Cmd.Flags().StringVarP(&yamlFile, "file", "f", "", "values yaml file")
+	Cmd.Flags().StringVarP(&helmRepo, "repository", "r", "", "helm repository name")
+	Cmd.Flags().StringVarP(&yamlFile, "file", "f", "", "values yaml file ")
 	Cmd.Flags().StringVarP(&values, "values", "v", "", "image tag values")
 }

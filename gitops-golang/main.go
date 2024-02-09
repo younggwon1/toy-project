@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github/younggwon1/gitops-golang/cli"
+
+	"github.com/younggwon1/gitops-golang/cli"
 )
 
 func main() {
