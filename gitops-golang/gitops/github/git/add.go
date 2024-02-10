@@ -17,6 +17,12 @@ func Add(repo *git.Repository, helmRepo string) error {
 	if err != nil {
 		return err
 	}
+
+	if status.IsClean() {
+		fmt.Println("Nothing to commit, Working tree clean")
+		return nil
+	}
+
 	fmt.Println(status)
 
 	err = w.AddWithOptions(&git.AddOptions{
