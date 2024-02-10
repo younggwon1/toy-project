@@ -8,10 +8,27 @@ import (
 	"github.com/google/go-github/v58/github"
 )
 
+func getDefaultBranch(organisation, repoName, AccessToken string) (string, error) {
+	ctx := context.Background()
+	client := github.NewClient(nil).WithAuthToken(AccessToken)
+
+	repo, _, err := client.Repositories.Get(ctx, organisation, repoName)
+	if err != nil {
+		return "", err
+	}
+
+	return *repo.DefaultBranch, nil
+}
+
 func AutoCreateAndMerge(branch plumbing.ReferenceName, organisation, helmRepo, yamlFile, AccessToken string) error {
+	defaultBranch, err := getDefaultBranch(organisation, helmRepo, AccessToken)
+	if err != nil {
+		return err
+	}
+
 	repoOwner := organisation
 	repoName := helmRepo
-	baseBranch := "main"
+	baseBranch := defaultBranch
 	headBranch := branch.String()
 	title := "Updated value in " + yamlFile
 	body := "Updated image tag value in " + yamlFile
