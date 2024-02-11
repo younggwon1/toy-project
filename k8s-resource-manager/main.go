@@ -1,14 +1,15 @@
 package main
 
 import (
-	k8s "github.com/younggwon1/k8s-resource-manager/config/kubernetes"
-	deployment "github.com/younggwon1/k8s-resource-manager/deployment"
+	"fmt"
+
+	"github.com/younggwon1/k8s-resource-manager/cli"
 )
 
 func main() {
-	kubernetesConfig := k8s.KubernetesCredentials() // Init kubernetes config
+	err := cli.RootCmd.Execute()
+	if err != nil {
+		fmt.Println(err)
 
-	deployment.ErrorDeployments(kubernetesConfig)
-	deployment.DeleteErrorDeployments(kubernetesConfig)
-
+	}
 }

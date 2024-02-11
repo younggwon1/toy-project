@@ -1,6 +1,6 @@
 package response
 
-type ResponseErrorDeployments struct {
+type ResponseErrorStatus struct {
 	Name      string `json:"name"`
 	NameSpace string `json:"namespace"`
 	Reason    string `json:"reason"`
@@ -8,7 +8,7 @@ type ResponseErrorDeployments struct {
 	Age       string `json:"age"`
 }
 
-type ResponseDeleteErrorDeployments struct {
+type ResponseDeleteErrorStatus struct {
 	Name      string `json:"name"`
 	NameSpace string `json:"namespace"`
 	Reason    string `json:"reason"`
