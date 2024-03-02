@@ -2,9 +2,8 @@ package deploy
 
 import (
 	"github.com/younggwon1/gitops-golang/file"
+	"github.com/younggwon1/gitops-golang/gitops/git"
 	"github.com/younggwon1/gitops-golang/gitops/github"
-	"github.com/younggwon1/gitops-golang/gitops/github/git"
-	"github.com/younggwon1/gitops-golang/gitops/github/git/branch"
 	"github.com/younggwon1/gitops-golang/util"
 
 	"github.com/spf13/cobra"
@@ -21,14 +20,15 @@ var (
 
 var Cmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "run deployer server",
+	Short: "run deployer cli",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		UserName := util.GetEnv("UserName", "")
-		AccessToken := util.GetEnv("AccessToken", "")
+		userName := util.GetEnv("UserName", "")
+		accessToken := util.GetEnv("AccessToken", "")
 
+		// github repository clone
 		r, err := git.Clone(
-			UserName,
-			AccessToken,
+			userName,
+			accessToken,
 			organisation,
 			helmRepo,
 		)
@@ -36,42 +36,53 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		b, err := branch.Create(r)
+		// init GitClient struct
+		gitCli := git.NewGitClient(r)
+
+		// create git branch
+		b, err := gitCli.Create()
 		if err != nil {
 			return err
 		}
 
-		err = branch.Checkout(r, b)
+		// checkout git branch
+		err = gitCli.Checkout()
 		if err != nil {
 			return err
 		}
 
+		// modify values.yaml file
 		err = file.ModifyFromYamlFile(helmRepo, yamlFile, values)
 		if err != nil {
 			return err
 		}
 
-		err = git.Add(r, helmRepo)
+		// add modified files to git
+		err = gitCli.Add(helmRepo)
 		if err != nil {
 			return err
 		}
 
-		err = git.Commit(r, user, userEmail, yamlFile)
+		// commit added files to git
+		err = gitCli.Commit(user, userEmail, yamlFile)
 		if err != nil {
 			return err
 		}
 
-		err = git.Push(r, UserName, AccessToken)
+		// push committed files to git
+		err = gitCli.Push(userName, accessToken)
 		if err != nil {
 			return err
 		}
 
-		err = github.AutoCreateAndMerge(b, organisation, helmRepo, yamlFile, AccessToken)
+		// auto create and merge pull request
+		err = github.AutoCreateAndMerge(b, organisation, helmRepo, yamlFile, accessToken)
 		if err != nil {
 			return err
 		}
 
-		err = branch.Delete(r, b, UserName, AccessToken)
+		// delete git branch
+		err = gitCli.Delete(userName, accessToken)
 		if err != nil {
 			return err
 		}
