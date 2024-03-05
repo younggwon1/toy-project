@@ -4,7 +4,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/uuid"
 )
 
@@ -15,14 +14,14 @@ func (gitCli *GitClient) Create() (plumbing.ReferenceName, error) {
 		return "", err
 	}
 
-	gitCli.branch = plumbing.NewBranchReferenceName("socops-deploy-" + uuid.New().String()[:8])
-	gitCli.branchRef = plumbing.NewHashReference(gitCli.branch, headRef.Hash())
+	gitCli.Branch = plumbing.NewBranchReferenceName("gitops-deploy-" + uuid.New().String()[:8])
+	gitCli.branchRef = plumbing.NewHashReference(gitCli.Branch, headRef.Hash())
 
 	if err := gitCli.repo.Storer.SetReference(gitCli.branchRef); err != nil {
 		return "", err
 	}
 
-	return gitCli.branch, nil
+	return gitCli.Branch, nil
 }
 
 func (gitCli *GitClient) Checkout() error {
@@ -32,7 +31,7 @@ func (gitCli *GitClient) Checkout() error {
 	}
 
 	err = worktree.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(gitCli.branch),
+		Branch: plumbing.ReferenceName(gitCli.Branch),
 	})
 
 	if err != nil {
@@ -41,15 +40,12 @@ func (gitCli *GitClient) Checkout() error {
 	return nil
 }
 
-func (gitCli *GitClient) Delete(userName, accessToken string) error {
+func (gitCli *GitClient) Delete() error {
 	// Delete remote branch
 	gitCli.logger.Info().Msg("Start remote branch delete")
 	pushOpts := &git.PushOptions{
-		RefSpecs: []config.RefSpec{config.RefSpec(":" + gitCli.branch)},
-		Auth: &http.BasicAuth{
-			Username: userName,
-			Password: accessToken,
-		},
+		RefSpecs: []config.RefSpec{config.RefSpec(":" + gitCli.Branch)},
+		Auth:     gitCli.gitAuth,
 	}
 
 	err := gitCli.repo.Push(pushOpts)
@@ -57,6 +53,5 @@ func (gitCli *GitClient) Delete(userName, accessToken string) error {
 		return err
 	}
 	gitCli.logger.Info().Msg("End remote branch delete")
-
 	return nil
 }

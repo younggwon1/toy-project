@@ -1,9 +1,9 @@
 package cli
 
 import (
-	"github.com/younggwon1/gitops-golang/cli/deploy"
-
 	"github.com/spf13/cobra"
+
+	"github.com/younggwon1/gitops-golang/cli/deploy"
 )
 
 var RootCmd = &cobra.Command{

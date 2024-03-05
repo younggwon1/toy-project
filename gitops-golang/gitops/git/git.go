@@ -5,21 +5,29 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/rs/zerolog"
+
+	"github.com/younggwon1/gitops-golang/util"
 )
 
 type GitClient struct {
-	repo      *git.Repository
-	branch    plumbing.ReferenceName
-	branchRef *plumbing.Reference
 	logger    zerolog.Logger
+	repo      *git.Repository
+	Branch    plumbing.ReferenceName
+	branchRef *plumbing.Reference
+	gitAuth   *http.BasicAuth
 }
 
-func NewGitClient(repo *git.Repository) *GitClient {
+func NewGitClient() *GitClient {
 	return &GitClient{
-		repo:      repo,
-		branch:    plumbing.ReferenceName(""),
+		logger:    zerolog.New(os.Stdout).With().Timestamp().Logger(),
+		repo:      &git.Repository{},
+		Branch:    plumbing.ReferenceName(""),
 		branchRef: &plumbing.Reference{},
-		logger:    zerolog.New(os.Stdout),
+		gitAuth: &http.BasicAuth{
+			Username: util.GetEnv("USERNAME", ""),
+			Password: util.GetEnv("PASSWORD", ""),
+		},
 	}
 }

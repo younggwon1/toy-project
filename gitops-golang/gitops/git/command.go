@@ -7,38 +7,36 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
+
 	"github.com/younggwon1/gitops-golang/file"
 )
 
-func Clone(userName, accessToken, org, helmRepo string) (*git.Repository, error) {
-	exists := file.Exists("/tmp/" + helmRepo)
+func (gitCli *GitClient) Clone(org, repo string) error {
+	exists := file.Exists("/tmp/" + repo)
 	if exists {
-		err := os.RemoveAll("/tmp/" + helmRepo)
+		err := os.RemoveAll("/tmp/" + repo)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
 
-	repo, err := git.PlainClone("/tmp/"+helmRepo, false, &git.CloneOptions{
+	r, err := git.PlainClone("/tmp/"+repo, false, &git.CloneOptions{
 
-		Auth: &http.BasicAuth{
-			Username: userName,
-			Password: accessToken,
-		},
-
-		URL:      "https://github.com/" + org + "/" + helmRepo,
+		Auth:     gitCli.gitAuth,
+		URL:      "https://github.com/" + org + "/" + repo,
 		Progress: os.Stdout,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return repo, nil
+	gitCli.repo = r
+
+	return nil
 }
 
-func (gitCli *GitClient) Add(helmRepo string) error {
-	directory := "/tmp/" + helmRepo
+func (gitCli *GitClient) Add(repo string) error {
+	directory := "/tmp/" + repo
 	w, err := gitCli.repo.Worktree()
 	if err != nil {
 		return err
@@ -67,16 +65,16 @@ func (gitCli *GitClient) Add(helmRepo string) error {
 	return nil
 }
 
-func (gitCli *GitClient) Commit(gitUser, gitUserEmail, yamlFile string) error {
+func (gitCli *GitClient) Commit(user, email, file string) error {
 	w, err := gitCli.repo.Worktree()
 	if err != nil {
 		return err
 	}
 
-	commit, err := w.Commit("changed image tag in "+yamlFile, &git.CommitOptions{
+	commit, err := w.Commit("changed image tag in "+file, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  gitUser,
-			Email: gitUserEmail,
+			Name:  user,
+			Email: email,
 			When:  time.Now(),
 		},
 	})
@@ -93,13 +91,10 @@ func (gitCli *GitClient) Commit(gitUser, gitUserEmail, yamlFile string) error {
 	return nil
 }
 
-func (gitCli *GitClient) Push(userName, accessToken string) error {
+func (gitCli *GitClient) Push() error {
 	err := gitCli.repo.Push(&git.PushOptions{
 		RemoteName: "origin",
-		Auth: &http.BasicAuth{
-			Username: userName,
-			Password: accessToken,
-		},
+		Auth:       gitCli.gitAuth,
 	})
 	if err != nil {
 		return err

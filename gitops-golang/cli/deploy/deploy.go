@@ -1,88 +1,96 @@
 package deploy
 
 import (
-	"github.com/younggwon1/gitops-golang/file"
+	"os"
+
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+
+	f "github.com/younggwon1/gitops-golang/file"
 	"github.com/younggwon1/gitops-golang/gitops/git"
 	"github.com/younggwon1/gitops-golang/gitops/github"
-	"github.com/younggwon1/gitops-golang/util"
-
-	"github.com/spf13/cobra"
 )
 
 var (
-	user         string
-	userEmail    string
-	organisation string
-	helmRepo     string
-	yamlFile     string
-	values       string
+	user   string
+	email  string
+	org    string
+	repo   string
+	file   string
+	values string
 )
 
 var Cmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "run deployer cli",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		userName := util.GetEnv("UserName", "")
-		accessToken := util.GetEnv("AccessToken", "")
+		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-		// github repository clone
-		r, err := git.Clone(
-			userName,
-			accessToken,
-			organisation,
-			helmRepo,
+		// init GitClient struct
+		gitCli := git.NewGitClient()
+		logger.Info().Msg("initialized Git Client")
+
+		// clone github repository
+		err := gitCli.Clone(
+			org,
+			repo,
 		)
 		if err != nil {
 			return err
 		}
-
-		// init GitClient struct
-		gitCli := git.NewGitClient(r)
+		logger.Info().Msg("Cloned " + repo + " successfully")
 
 		// create git branch
 		b, err := gitCli.Create()
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("Created Branch " + b.String() + " successfully.\n")
 
 		// checkout git branch
 		err = gitCli.Checkout()
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("Checkout Branch " + b.String() + " successfully.\n")
 
 		// modify values.yaml file
-		err = file.ModifyFromYamlFile(helmRepo, yamlFile, values)
+		err = f.ModifyFromYamlFile(repo, file, values)
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("Modified Values successfully.\n")
 
 		// add modified files to git
-		err = gitCli.Add(helmRepo)
+		err = gitCli.Add(repo)
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("Changed Files added successfully to" + b.String() + " branch.\n")
 
 		// commit added files to git
-		err = gitCli.Commit(user, userEmail, yamlFile)
+		err = gitCli.Commit(user, email, file)
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("Done a commit successfully.\n")
 
 		// push committed files to git
-		err = gitCli.Push(userName, accessToken)
+		err = gitCli.Push()
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("Done a push successfully.\n")
 
 		// auto create and merge pull request
-		err = github.AutoCreateAndMerge(b, organisation, helmRepo, yamlFile, accessToken)
+		err = github.AutoCreateAndMerge(gitCli.Branch, org, repo, file)
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("Pull request created and merged successfully.\n")
 
 		// delete git branch
-		err = gitCli.Delete(userName, accessToken)
+		err = gitCli.Delete()
 		if err != nil {
 			return err
 		}
@@ -93,9 +101,9 @@ var Cmd = &cobra.Command{
 
 func init() {
 	Cmd.Flags().StringVarP(&user, "user", "u", "", "github user")
-	Cmd.Flags().StringVarP(&userEmail, "email", "e", "", "github user email")
-	Cmd.Flags().StringVarP(&organisation, "organisation", "o", "", "github organisation")
-	Cmd.Flags().StringVarP(&helmRepo, "repository", "r", "", "helm repository name")
-	Cmd.Flags().StringVarP(&yamlFile, "file", "f", "", "values yaml file ")
+	Cmd.Flags().StringVarP(&email, "email", "e", "", "github user email")
+	Cmd.Flags().StringVarP(&org, "organisation", "o", "", "github organisation")
+	Cmd.Flags().StringVarP(&repo, "repository", "r", "", "git repository name")
+	Cmd.Flags().StringVarP(&file, "file", "f", "", "values yaml file ")
 	Cmd.Flags().StringVarP(&values, "values", "v", "", "image tag values")
 }

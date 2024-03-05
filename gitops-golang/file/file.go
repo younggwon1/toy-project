@@ -25,11 +25,12 @@ func ReadFromFile(filename string, out interface{}) error {
 	return nil
 }
 
-func ModifyFromYamlFile(helmRepo, yamlFile, valueToModify string) error {
-	yamlFileName := "/tmp/" + helmRepo + "/" + yamlFile
+func ModifyFromYamlFile(repo, file, valueToModify string) error {
+	yamlFileName := "/tmp/" + repo + "/" + file
 
 	var parseYamlNode yaml.Node
 	err := ReadFromFile(yamlFileName, &parseYamlNode)
+
 	if err != nil {
 		return err
 	}
@@ -49,14 +50,14 @@ func ModifyFromYamlFile(helmRepo, yamlFile, valueToModify string) error {
 
 	modifyNode(&parseYamlNode, keys, values)
 
-	file, err := os.Create(yamlFileName)
+	f, err := os.Create(yamlFileName)
 	if err != nil {
 		return err
 	}
 
-	defer file.Close()
+	defer f.Close()
 
-	encoder := yaml.NewEncoder(file)
+	encoder := yaml.NewEncoder(f)
 	encoder.SetIndent(2)
 
 	if err := encoder.Encode(&parseYamlNode); err != nil {

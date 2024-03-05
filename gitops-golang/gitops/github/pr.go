@@ -2,17 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/google/go-github/v58/github"
 )
 
-func getDefaultBranch(organisation, repoName, AccessToken string) (string, error) {
+func getDefaultBranch(org, repoName, AccessToken string) (string, error) {
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(AccessToken)
 
-	repo, _, err := client.Repositories.Get(ctx, organisation, repoName)
+	repo, _, err := client.Repositories.Get(ctx, org, repoName)
 	if err != nil {
 		return "", err
 	}
@@ -20,21 +19,23 @@ func getDefaultBranch(organisation, repoName, AccessToken string) (string, error
 	return *repo.DefaultBranch, nil
 }
 
-func AutoCreateAndMerge(branch plumbing.ReferenceName, organisation, helmRepo, yamlFile, AccessToken string) error {
-	defaultBranch, err := getDefaultBranch(organisation, helmRepo, AccessToken)
+func AutoCreateAndMerge(branch plumbing.ReferenceName, org, repo, file string) error {
+	githubCli := NewGithubClient()
+
+	defaultBranch, err := getDefaultBranch(org, repo, githubCli.authToken)
 	if err != nil {
 		return err
 	}
 
-	repoOwner := organisation
-	repoName := helmRepo
+	repoOwner := org
+	repoName := repo
 	baseBranch := defaultBranch
 	headBranch := branch.String()
-	title := "Updated value in " + yamlFile
-	body := "Updated image tag value in " + yamlFile
+	title := "Updated value in " + file
+	body := "Updated image tag value in " + file
 
 	ctx := context.Background()
-	client := github.NewClient(nil).WithAuthToken(AccessToken)
+	client := github.NewClient(nil).WithAuthToken(githubCli.authToken)
 
 	pr := &github.NewPullRequest{
 		Title: &title,
@@ -48,7 +49,7 @@ func AutoCreateAndMerge(branch plumbing.ReferenceName, organisation, helmRepo, y
 		return err
 	}
 
-	fmt.Printf("Pull request created: %s\n", pullRequest.GetHTMLURL())
+	githubCli.logger.Info().Msg("Pull request created: " + pullRequest.GetHTMLURL())
 	prNumber := pullRequest.GetNumber()
 
 	_, _, err = client.PullRequests.Merge(ctx, repoOwner, repoName, prNumber, "", &github.PullRequestOptions{})
@@ -56,7 +57,7 @@ func AutoCreateAndMerge(branch plumbing.ReferenceName, organisation, helmRepo, y
 		return err
 	}
 
-	fmt.Printf("Pull request merged: %s\n", pullRequest.GetHTMLURL())
+	githubCli.logger.Info().Msg("Pull request merged: " + pullRequest.GetHTMLURL())
 
 	return nil
 }
