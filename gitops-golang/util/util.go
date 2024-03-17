@@ -9,3 +9,11 @@ func GetEnv(key, fallback string) string {
 	}
 	return value
 }
+
+func DefaultStr(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+
+	return value
+}

@@ -5,9 +5,10 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/google/go-github/v58/github"
+	"github.com/rs/zerolog"
 )
 
-func getDefaultBranch(org, repoName, AccessToken string) (string, error) {
+func getTargetBranch(org, repoName, AccessToken string) (string, error) {
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(AccessToken)
 
@@ -19,23 +20,21 @@ func getDefaultBranch(org, repoName, AccessToken string) (string, error) {
 	return *repo.DefaultBranch, nil
 }
 
-func AutoCreateAndMerge(branch plumbing.ReferenceName, org, repo, file string) error {
-	githubCli := NewGithubClient()
-
-	defaultBranch, err := getDefaultBranch(org, repo, githubCli.authToken)
+func AutoCreateAndMergePR(logger *zerolog.Logger, branch plumbing.ReferenceName, password, org, repo string) error {
+	targetBranch, err := getTargetBranch(org, repo, password)
 	if err != nil {
 		return err
 	}
 
 	repoOwner := org
 	repoName := repo
-	baseBranch := defaultBranch
+	baseBranch := targetBranch
 	headBranch := branch.String()
-	title := "Updated value in " + file
-	body := "Updated image tag value in " + file
+	title := "Updated value in " + branch.String()
+	body := "Updated image tag value in " + branch.String() + " branch"
 
 	ctx := context.Background()
-	client := github.NewClient(nil).WithAuthToken(githubCli.authToken)
+	client := github.NewClient(nil).WithAuthToken(password)
 
 	pr := &github.NewPullRequest{
 		Title: &title,
@@ -49,7 +48,7 @@ func AutoCreateAndMerge(branch plumbing.ReferenceName, org, repo, file string) e
 		return err
 	}
 
-	githubCli.logger.Info().Msg("Pull request created: " + pullRequest.GetHTMLURL())
+	logger.Info().Msg("created pull request: " + pullRequest.GetHTMLURL())
 	prNumber := pullRequest.GetNumber()
 
 	_, _, err = client.PullRequests.Merge(ctx, repoOwner, repoName, prNumber, "", &github.PullRequestOptions{})
@@ -57,7 +56,7 @@ func AutoCreateAndMerge(branch plumbing.ReferenceName, org, repo, file string) e
 		return err
 	}
 
-	githubCli.logger.Info().Msg("Pull request merged: " + pullRequest.GetHTMLURL())
+	logger.Info().Msg("merged pull request: " + pullRequest.GetHTMLURL())
 
 	return nil
 }

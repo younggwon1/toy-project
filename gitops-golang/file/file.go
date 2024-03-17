@@ -25,18 +25,16 @@ func ReadFromFile(filename string, out interface{}) error {
 	return nil
 }
 
-func ModifyFromYamlFile(repo, file, valueToModify string) error {
-	yamlFileName := "/tmp/" + repo + "/" + file
-
+func ModifyYamlFile(targetPath, inputValue string) error {
 	var parseYamlNode yaml.Node
-	err := ReadFromFile(yamlFileName, &parseYamlNode)
+	err := ReadFromFile(targetPath, &parseYamlNode)
 
 	if err != nil {
 		return err
 	}
 
 	var valueTemplate map[string]string
-	err = yaml.Unmarshal([]byte(valueToModify), &valueTemplate)
+	err = yaml.Unmarshal([]byte(inputValue), &valueTemplate)
 	if err != nil {
 		return err
 	}
@@ -50,7 +48,7 @@ func ModifyFromYamlFile(repo, file, valueToModify string) error {
 
 	modifyNode(&parseYamlNode, keys, values)
 
-	f, err := os.Create(yamlFileName)
+	f, err := os.Create(targetPath)
 	if err != nil {
 		return err
 	}
@@ -74,32 +72,31 @@ func modifyNode(node *yaml.Node, path []string, value string) {
 	}
 
 	for i := 0; i < len(node.Content); i += 2 {
+		// case for single node
 		if len(node.Content) == 1 {
 			modifyNode(node.Content[i], path, value)
 		}
 
+		// case for map
 		if node.Content[i].Value == path[0] {
 			modifyNode(node.Content[i+1], path[1:], value)
 			return
 		}
 
-		if strings.Contains(path[0], "cronjob") {
-			split := strings.Split(path[0], "[")
-			if node.Content[i].Value == split[0] {
-				r := regexp.MustCompile(`\d+`)
-				for _, str := range path {
-					matches := r.FindStringSubmatch(str)
-					if len(matches) > 0 {
-						index, _ := strconv.Atoi(matches[0])
-						modifyNode(node.Content[i+1].Content[index], path[1:], value)
-						return
-					}
+		// case for array
+		split := strings.Split(path[0], "[")
+		if node.Content[i].Value == split[0] {
+			r := regexp.MustCompile(`\d+`)
+			for _, str := range path {
+				matches := r.FindStringSubmatch(str)
+				if len(matches) > 0 {
+					index, _ := strconv.Atoi(matches[0])
+					modifyNode(node.Content[i+1].Content[index], path[1:], value)
+					return
 				}
 			}
 		}
 	}
-
-	return
 }
 
 // func modifyNode(node *yaml.Node, path []string, value string) {

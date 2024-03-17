@@ -7,6 +7,7 @@ require (
 	github.com/google/go-github/v58 v58.0.0
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.8.0
+	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/client-go v0.26.11
 	sigs.k8s.io/controller-runtime v0.14.6
@@ -15,6 +16,7 @@ require (
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 )
 
 require (
