@@ -25,39 +25,34 @@ func ReadFromFile(filename string, out interface{}) error {
 	return nil
 }
 
-func ModifyYamlFile(targetPath, inputValue string) error {
+func ModifyYamlFile(targetPath, inputValues string) error {
 	var parseYamlNode yaml.Node
+	// read yaml file
 	err := ReadFromFile(targetPath, &parseYamlNode)
-
 	if err != nil {
 		return err
 	}
 
-	var valueTemplate map[string]string
-	err = yaml.Unmarshal([]byte(inputValue), &valueTemplate)
+	// modify values
+	var data map[string]string // key: value
+	err = yaml.Unmarshal([]byte(inputValues), &data)
 	if err != nil {
 		return err
 	}
-
-	var keys []string
-	var values string
-	for k, v := range valueTemplate {
-		keys = strings.Split(k, ".")
-		values = v
+	for k, v := range data {
+		keys := strings.Split(k, ".")
+		value := v
+		modifyNode(&parseYamlNode, keys, value)
 	}
 
-	modifyNode(&parseYamlNode, keys, values)
-
+	// write to file
 	f, err := os.Create(targetPath)
 	if err != nil {
 		return err
 	}
-
 	defer f.Close()
-
 	encoder := yaml.NewEncoder(f)
 	encoder.SetIndent(2)
-
 	if err := encoder.Encode(&parseYamlNode); err != nil {
 		return err
 	}

@@ -56,6 +56,11 @@ cronjobs:
 arrays:
   - name: "life"
     definition: "wonderful"
+multi:
+  frontend:
+    tag: tmp
+  backend:
+    tag: tmp
 `
 
 	// set the values to modify
@@ -64,10 +69,9 @@ arrays:
 		`{"image.frontend.tag":"v3.14"}`,
 		`{"image.backend.tag":"v3.14"}`,
 		`{"image.grpc.tag":"v3.14"}`,
-		`{"cronjobs[0].image.tag":"v3.14"}`,
-		`{"cronjobs[1].image.tag":"v3.14"}`,
-		`{"cronjobs[2].image.tag":"v3.14"}`,
 		`{"arrays[0].definition":"beautiful"}`,
+		`{"cronjobs[0].image.tag":"v3.14", "cronjobs[1].image.tag":"v3.14", "cronjobs[2].image.tag":"v3.14"}`,
+		`{"multi.frontend.tag":"v3.14", "multi.backend.tag":"v3.14"}`,
 	}
 
 	// set expected values
@@ -96,6 +100,11 @@ cronjobs:
 arrays:
   - name: "life"
     definition: "beautiful"
+multi:
+  frontend:
+    tag: v3.14
+  backend:
+    tag: v3.14
 `
 
 	// write target value to yaml file
