@@ -10,6 +10,13 @@ import (
 	"github.com/younggwon1/gitops-golang/external/argocd"
 )
 
+var (
+	appName string
+	dryRun  bool
+	prune   bool
+	force   bool
+)
+
 var Cmd = &cobra.Command{
 	Use:   "sync",
 	Short: "run syncer cli",
@@ -31,23 +38,40 @@ var Cmd = &cobra.Command{
 		cli, err := argocd.NewClient(&argocd.Connection{
 			Address: argocdAddress,
 			Token:   argocdToken,
-		}, logger)
+		})
 		if err != nil {
 			return err
 		}
+		logger.Info().Msgf("created argocd client with address: %s", argocdAddress)
 
 		// init argocd app client
 		appCli, err := cli.NewAppClient()
 		if err != nil {
 			return err
 		}
+		logger.Info().Msg("created argocd app client")
 
 		// sync argocd app
-		err = appCli.Sync()
+		err = appCli.Sync(&argocd.AppSyncRequest{
+			Name:   &appName,
+			DryRun: &dryRun,
+			Prune:  &prune,
+			SyncStrategy: &argocd.AppSyncStrategyRequest{
+				Force: force,
+			},
+		})
 		if err != nil {
 			return err
 		}
+		logger.Info().Msgf("synced argocd app: %s", appName)
 
 		return nil
 	},
+}
+
+func init() {
+	Cmd.Flags().StringVarP(&appName, "appName", "a", "", "(required) argocd application name")
+	Cmd.Flags().BoolVarP(&dryRun, "dryRun", "d", false, "(optional) argocd application dry run option, default: false")
+	Cmd.Flags().BoolVarP(&prune, "prune", "p", false, "(optional) argocd application prune option, default: false")
+	Cmd.Flags().BoolVarP(&force, "force", "f", false, "(optional) argocd application force option, default: false")
 }
