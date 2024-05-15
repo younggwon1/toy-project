@@ -2,19 +2,29 @@ package sync
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
 	"github.com/younggwon1/gitops-golang/external/argocd"
+	"github.com/younggwon1/gitops-golang/external/slack"
 )
 
 var (
-	appName string
-	dryRun  bool
-	prune   bool
-	force   bool
+	// argocd sync flags
+	server string
+	token  string
+	name   string
+	dryRun bool
+	prune  bool
+	force  bool
+	// set git flags
+	executor   string
+	repository string
+	tag        string
+	ticket     string
 )
 
 var Cmd = &cobra.Command{
@@ -25,53 +35,74 @@ var Cmd = &cobra.Command{
 		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 		// retrieve argocd address, token from env vars
-		argocdAddress := os.Getenv("ARGOCD_ADDRESS")
-		if argocdAddress == "" {
-			return fmt.Errorf("failed to retrieve `ARGOCD_ADDRESS` env var")
-		}
-		argocdToken := os.Getenv("ARGOCD_TOKEN")
-		if argocdToken == "" {
-			return fmt.Errorf("failed to retrieve `ARGOCD_TOKEN` env var")
+		slackWebhookUrl := os.Getenv("SLACK_WEBHOOK_URL")
+		if slackWebhookUrl == "" {
+			return fmt.Errorf("failed to retrieve `SLACK_WEBHOOK_URL` env var")
 		}
 
 		// init argocd client
 		cli, err := argocd.NewClient(&argocd.Connection{
-			Address: argocdAddress,
-			Token:   argocdToken,
+			Address: server,
+			Token:   token,
 		})
 		if err != nil {
 			return err
 		}
-		logger.Info().Msgf("created argocd client with address: %s", argocdAddress)
+		logger.Info().Msgf("created argocd client with address: %s", server)
 
 		// init argocd app client
 		appCli, err := cli.NewAppClient()
 		if err != nil {
 			return err
 		}
-		logger.Info().Msg("created argocd app client")
+		logger.Info().Msg("succeed argocd app client")
 
 		// sync argocd app
-		err = appCli.Sync(&argocd.AppSyncRequest{
-			Name:   &appName,
+		argoCDAppUrl, err := url.JoinPath("https://", server, "applications", name)
+		if err != nil {
+			return err
+		}
+		audit, err := appCli.Sync(&argocd.AppSyncRequest{
+			Name:   &name,
 			DryRun: &dryRun,
 			Prune:  &prune,
 			SyncStrategy: &argocd.AppSyncStrategyRequest{
 				Force: force,
 			},
-		})
+		}, executor, repository, tag, ticket, argoCDAppUrl)
 		if err != nil {
 			return err
 		}
-		logger.Info().Msgf("synced argocd app: %s", appName)
+		logger.Info().Msgf("synced argocd app: %s", name)
+
+		// Send slack message related audit
+		err = slack.SendSlackMessage(slackWebhookUrl, audit)
+		if err != nil {
+			return err
+		}
+		logger.Info().Msg("succeed to send audit slack message")
+
+		// // marshal audit data
+		// yamlAuditData, err := yaml.Marshal(&audit)
+		// if err != nil {
+		// 	return err
+		// }
+		// logger.Info().Msgf("succeed to marshal audit data: %s", yamlAuditData)
 
 		return nil
 	},
 }
 
 func init() {
-	Cmd.Flags().StringVarP(&appName, "appName", "a", "", "(required) argocd application name")
-	Cmd.Flags().BoolVarP(&dryRun, "dryRun", "d", false, "(optional) argocd application dry run option, default: false")
-	Cmd.Flags().BoolVarP(&prune, "prune", "p", false, "(optional) argocd application prune option, default: false")
-	Cmd.Flags().BoolVarP(&force, "force", "f", false, "(optional) argocd application force option, default: false")
+	Cmd.Flags().StringVar(&server, "server", "", "(required) argocd server address")
+	Cmd.Flags().StringVar(&token, "token", "", "(required) argocd server token")
+	Cmd.Flags().StringVar(&name, "name", "", "(required) argocd application name")
+	Cmd.Flags().BoolVar(&dryRun, "dryRun", false, "(optional) argocd application dry run option, default: false")
+	Cmd.Flags().BoolVar(&prune, "prune", false, "(optional) argocd application prune option, default: false")
+	Cmd.Flags().BoolVar(&force, "force", false, "(optional) argocd application force option, default: false")
+
+	Cmd.Flags().StringVar(&executor, "executor", "", "(required) executor name who deployed the service")
+	Cmd.Flags().StringVar(&repository, "repository", "", "(required) git repository url")
+	Cmd.Flags().StringVar(&tag, "tag", "", "(required) tag name to deploy")
+	Cmd.Flags().StringVar(&ticket, "ticket", "", "(required) ticket name")
 }
