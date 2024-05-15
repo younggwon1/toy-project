@@ -1,6 +1,6 @@
 module github.com/younggwon1/gitops-golang
 
-go 1.19
+go 1.21
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.10.9
