@@ -75,19 +75,34 @@ var Cmd = &cobra.Command{
 		}
 		logger.Info().Msgf("synced argocd app: %s", name)
 
-		// Send slack message related audit
-		err = slack.SendSlackMessage(slackWebhookUrl, audit)
+		// send audit slack message
+		tmpl := `version: v0.0.1
+metadata:
+  name: {{ .Metadata.Name }}
+  label:
+    executor: {{ .Metadata.Label.Executor }}
+  spec:
+    src:
+	  code:
+		repo: {{ .Spec.Source.Code.Repo }}
+		rev: {{ .Spec.Source.Code.Rev }}
+	  helm:
+		repo: {{ .Spec.Source.Helm.Repo }}
+		chart: {{ .Spec.Source.Helm.Chart }}
+		rev: {{ .Spec.Source.Helm.Rev }}
+	  jira:
+		ticket:
+		  cr: {{ .Spec.Source.Jira.Ticket.CR }}
+	dst:
+	  argocd:
+		url: {{ .Spec.Destination.ArgoCD.URL }}
+		synced: {{ .Spec.Destination.ArgoCD.Synced }}
+`
+		err = slack.SendSlackMessage(slackWebhookUrl, tmpl, audit)
 		if err != nil {
 			return err
 		}
 		logger.Info().Msg("succeed to send audit slack message")
-
-		// // marshal audit data
-		// yamlAuditData, err := yaml.Marshal(&audit)
-		// if err != nil {
-		// 	return err
-		// }
-		// logger.Info().Msgf("succeed to marshal audit data: %s", yamlAuditData)
 
 		return nil
 	},
