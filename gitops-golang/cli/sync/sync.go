@@ -35,8 +35,8 @@ var Cmd = &cobra.Command{
 		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 		// retrieve argocd address, token from env vars
-		slackWebhookUrl := os.Getenv("SLACK_WEBHOOK_URL")
-		if slackWebhookUrl == "" {
+		slackWebHookUrl := os.Getenv("SLACK_WEBHOOK_URL")
+		if slackWebHookUrl == "" {
 			return fmt.Errorf("failed to retrieve `SLACK_WEBHOOK_URL` env var")
 		}
 
@@ -98,7 +98,7 @@ metadata:
 		url: {{ .Spec.Destination.ArgoCD.URL }}
 		synced: {{ .Spec.Destination.ArgoCD.Synced }}
 `
-		err = slack.SendSlackMessage(slackWebhookUrl, tmpl, audit)
+		err = slack.SendMessage(slackWebHookUrl, tmpl, audit)
 		if err != nil {
 			return err
 		}
@@ -115,7 +115,6 @@ func init() {
 	Cmd.Flags().BoolVar(&dryRun, "dryRun", false, "(optional) argocd application dry run option, default: false")
 	Cmd.Flags().BoolVar(&prune, "prune", false, "(optional) argocd application prune option, default: false")
 	Cmd.Flags().BoolVar(&force, "force", false, "(optional) argocd application force option, default: false")
-
 	Cmd.Flags().StringVar(&executor, "executor", "", "(required) executor name who deployed the service")
 	Cmd.Flags().StringVar(&repository, "repository", "", "(required) git repository url")
 	Cmd.Flags().StringVar(&tag, "tag", "", "(required) tag name to deploy")
