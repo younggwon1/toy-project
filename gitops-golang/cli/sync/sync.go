@@ -9,7 +9,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/younggwon1/gitops-golang/external/argocd"
+	"github.com/younggwon1/gitops-golang/external/jira"
 	"github.com/younggwon1/gitops-golang/external/slack"
+	"github.com/younggwon1/gitops-golang/util"
 )
 
 var (
@@ -38,6 +40,19 @@ var Cmd = &cobra.Command{
 		slackWebHookUrl := os.Getenv("SLACK_WEBHOOK_URL")
 		if slackWebHookUrl == "" {
 			return fmt.Errorf("failed to retrieve `SLACK_WEBHOOK_URL` env var")
+		}
+
+		// validate jira ticket
+		result := util.ValidateTicket(ticket)
+		if !result {
+			return fmt.Errorf("failed to validate jira ticket: %s", ticket)
+		}
+
+		// validate jira ticket status for deploying service
+		// *** TODO : setup jira connection ***
+		err := jira.TicketStatusCheck(ticket)
+		if err != nil {
+			return err
 		}
 
 		// init argocd client
