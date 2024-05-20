@@ -42,19 +42,6 @@ var Cmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve `SLACK_WEBHOOK_URL` env var")
 		}
 
-		// validate jira ticket
-		result := util.ValidateTicket(ticket)
-		if !result {
-			return fmt.Errorf("failed to validate jira ticket: %s", ticket)
-		}
-
-		// validate jira ticket status for deploying service
-		// *** TODO : setup jira connection ***
-		err := jira.TicketStatusCheck(ticket)
-		if err != nil {
-			return err
-		}
-
 		// init argocd client
 		cli, err := argocd.NewClient(&argocd.Connection{
 			Address: server,
@@ -71,6 +58,21 @@ var Cmd = &cobra.Command{
 			return err
 		}
 		logger.Info().Msg("succeed argocd app client")
+
+		// validate jira ticket
+		result := util.ValidateTicket(ticket)
+		if !result {
+			return fmt.Errorf("failed to validate the entered jira ticket: %s", ticket)
+		}
+		logger.Info().Msgf("succeed to validate the entered jira ticket.: %s", ticket)
+
+		// validate jira ticket status for deploying service
+		// *** TODO : setup jira connection ***
+		err = jira.TicketStatusCheck(ticket)
+		if err != nil {
+			return err
+		}
+		logger.Info().Msg("succeed to check the entered jira ticket status for deploying")
 
 		// sync argocd app
 		argoCDAppUrl, err := url.JoinPath("https://", server, "applications", name)

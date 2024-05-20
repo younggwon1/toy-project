@@ -1,7 +1,9 @@
 package jira
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,6 +14,14 @@ type JiraConnection struct {
 	JiraUrl  string
 	Username string
 	Token    string
+}
+
+type TicketStatus struct {
+	Fields struct {
+		Status struct {
+			Name string `json:"name"`
+		} `json:"status"`
+	} `json:"fields"`
 }
 
 func GetTicketStatus(ticket string, j *JiraConnection) error {
@@ -40,11 +50,29 @@ func GetTicketStatus(ticket string, j *JiraConnection) error {
 	if err != nil {
 		return err
 	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to get ticket status: %s", res.Status)
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("ticket %s is not found", ticket)
+	} else if res.StatusCode != http.StatusOK {
+		return err
 	}
 	if res != nil {
 		defer res.Body.Close()
+	}
+
+	// read response body and unmarshal ticket status
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	var ticketStatus TicketStatus
+	err = json.Unmarshal(body, &ticketStatus)
+	if err != nil {
+		return err
+	}
+
+	// check if ticket is ready to deploy
+	if ticketStatus.Fields.Status.Name == "Backlog" || ticketStatus.Fields.Status.Name == "Request Review" {
+		return fmt.Errorf("ticket %s is not ready to deploy", ticket)
 	}
 
 	return nil
@@ -56,6 +84,11 @@ func TicketStatusCheck(ticket string) error {
 
 	// init goroutine
 	wg := sync.WaitGroup{}
+	// mutex for error slice
+	mu := sync.Mutex{}
+
+	// slice for collecting errors
+	var errors []error
 
 	// goroutine for checking ticket status
 	for _, t := range tickets {
@@ -68,9 +101,19 @@ func TicketStatusCheck(ticket string) error {
 				Token:    "",
 			})
 			if err != nil {
-				fmt.Printf("failed to get ticket status: %s", err)
+				mu.Lock()
+				errors = append(errors, fmt.Errorf("%s ,", err))
+				mu.Unlock()
 			}
 		}(t)
+	}
+
+	// wait for all goroutines to finish
+	wg.Wait()
+
+	// if there are any errors, return them
+	if len(errors) > 0 {
+		return fmt.Errorf("occurred errors : %v : please check the tickets with issues", errors)
 	}
 
 	return nil
