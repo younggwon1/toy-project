@@ -21,10 +21,16 @@ type TicketStatus struct {
 		Status struct {
 			Name string `json:"name"`
 		} `json:"status"`
+		Assignee struct {
+			EmailAddress string `json:"emailAddress"`
+		} `json:"assignee"`
+		Participants []struct {
+			EmailAddress string `json:"emailAddress"`
+		} `json:"customfield_10243"` // customfield_10243 is a custom field for participants
 	} `json:"fields"`
 }
 
-func GetTicketStatus(ticket string, j *JiraConnection) error {
+func GetTicketStatus(email, ticket string, j *JiraConnection) error {
 	url, err := url.JoinPath(j.JiraUrl, "/rest/api/3/issue", ticket)
 	if err != nil {
 		return err
@@ -51,7 +57,7 @@ func GetTicketStatus(ticket string, j *JiraConnection) error {
 		return err
 	}
 	if res.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("ticket %s is not found", ticket)
+		return fmt.Errorf("ticket %s is not found, check whether the entered ticket exists", ticket)
 	} else if res.StatusCode != http.StatusOK {
 		return err
 	}
@@ -70,15 +76,38 @@ func GetTicketStatus(ticket string, j *JiraConnection) error {
 		return err
 	}
 
-	// check if ticket is ready to deploy
-	if ticketStatus.Fields.Status.Name == "Backlog" || ticketStatus.Fields.Status.Name == "Request Review" {
-		return fmt.Errorf("ticket %s is not ready to deploy", ticket)
+	/*
+		배포 조건 정리
+		1. jira ticket 상태는 "Reviewed" or "Deployed and Monitoring" 이어야 한다.
+		2. executor는 assignee 이거나 participant 중 한 명이어야한다.
+		3. 위 조건이 맞지 않으면 배포는 불가능하다.
+	*/
+	// check if ticket status is ready to deploy
+	if ticketStatus.Fields.Status.Name == "Reviewed" || ticketStatus.Fields.Status.Name == "Deployed and Monitoring" {
+		if ticketStatus.Fields.Assignee.EmailAddress == email {
+			return nil
+		} else if ticketStatus.Fields.Participants != nil {
+			found := false
+			for _, participant := range ticketStatus.Fields.Participants {
+				if participant.EmailAddress == email {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("executor %s does not belong to the participant", email)
+			}
+		} else {
+			return fmt.Errorf("%s is not executor, deployment is possible only if the executor is an assignee", email)
+		}
+	} else {
+		return fmt.Errorf("ticket %s status is not ready to deploy, possible only if the ticket status is 'Reviewed' and 'Deployed and Monitoring'", ticket)
 	}
 
 	return nil
 }
 
-func TicketStatusCheck(ticket string) error {
+func TicketStatusCheck(j *JiraConnection, email, ticket string) error {
 	// separate jira ticket based '_'
 	tickets := strings.Split(ticket, "_")
 
@@ -95,14 +124,10 @@ func TicketStatusCheck(ticket string) error {
 		wg.Add(1)
 		go func(t string) {
 			defer wg.Done()
-			err := GetTicketStatus(t, &JiraConnection{
-				JiraUrl:  "https://jira.com",
-				Username: "",
-				Token:    "",
-			})
+			err := GetTicketStatus(email, t, j)
 			if err != nil {
 				mu.Lock()
-				errors = append(errors, fmt.Errorf("%s ,", err))
+				errors = append(errors, fmt.Errorf("%s,", err))
 				mu.Unlock()
 			}
 		}(t)

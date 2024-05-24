@@ -23,9 +23,13 @@ package config
 //       synced: 2024-05-06 21:18:10
 
 type Auditor struct {
-	Version  string `yaml:"version"`
+	Version  `yaml:"version"`
 	Metadata `yaml:"metadata"`
 	Spec     `yaml:"spec"`
+}
+
+type Version struct {
+	Version string `yaml:"version"`
 }
 
 type Metadata struct {

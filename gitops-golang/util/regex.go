@@ -1,6 +1,8 @@
 package util
 
-import "regexp"
+import (
+	"regexp"
+)
 
 func ValidateTicket(ticket string) bool {
 	// regex for jira ticket

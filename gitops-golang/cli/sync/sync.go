@@ -24,6 +24,7 @@ var (
 	force  bool
 	// set git flags
 	executor   string
+	email      string
 	repository string
 	tag        string
 	ticket     string
@@ -36,12 +37,32 @@ var Cmd = &cobra.Command{
 		// init logger
 		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-		// retrieve argocd address, token from env vars
+		// retrieve slackwebhook url from env vars
 		slackWebHookUrl := os.Getenv("SLACK_WEBHOOK_URL")
 		if slackWebHookUrl == "" {
 			return fmt.Errorf("failed to retrieve `SLACK_WEBHOOK_URL` env var")
 		}
+		// retrieve jira url, username, token from env vars
+		jiraUrl := os.Getenv("JIRA_URL")
+		if jiraUrl == "" {
+			return fmt.Errorf("failed to retrieve `JIRA_URL` env var")
+		}
+		jiraUsername := os.Getenv("JIRA_USERNAME")
+		if jiraUsername == "" {
+			return fmt.Errorf("failed to retrieve `JIRA_USERNAME` env var")
+		}
+		jiraToken := os.Getenv("JIRA_TOKEN")
+		if jiraToken == "" {
+			return fmt.Errorf("failed to retrieve `JIRA_TOKEN` env var")
+		}
 
+		// validate argocd server address and token
+		if server == "" {
+			return fmt.Errorf("failed because of `argocd address` was set to an empty value")
+		}
+		if token == "" {
+			return fmt.Errorf("failed because of `argocd token` was set to an empty value")
+		}
 		// init argocd client
 		cli, err := argocd.NewClient(&argocd.Connection{
 			Address: server,
@@ -60,15 +81,21 @@ var Cmd = &cobra.Command{
 		logger.Info().Msg("succeed argocd app client")
 
 		// validate jira ticket
+		if ticket == "" {
+			return fmt.Errorf("failed because of `entered ticket` was set to an empty value")
+		}
 		result := util.ValidateTicket(ticket)
 		if !result {
 			return fmt.Errorf("failed to validate the entered jira ticket: %s", ticket)
 		}
-		logger.Info().Msgf("succeed to validate the entered jira ticket.: %s", ticket)
+		logger.Info().Msgf("succeed to validate the entered jira ticket: %s", ticket)
 
 		// validate jira ticket status for deploying service
-		// *** TODO : setup jira connection ***
-		err = jira.TicketStatusCheck(ticket)
+		err = jira.TicketStatusCheck(&jira.JiraConnection{
+			JiraUrl:  jiraUrl,
+			Username: jiraUsername,
+			Token:    jiraToken,
+		}, email, ticket)
 		if err != nil {
 			return err
 		}
@@ -93,7 +120,7 @@ var Cmd = &cobra.Command{
 		logger.Info().Msgf("synced argocd app: %s", name)
 
 		// send audit slack message
-		tmpl := `version: v0.0.1
+		tmpl := `version: {{ .Version.Version }}
 metadata:
   name: {{ .Metadata.Name }}
   label:
@@ -133,6 +160,7 @@ func init() {
 	Cmd.Flags().BoolVar(&prune, "prune", false, "(optional) argocd application prune option, default: false")
 	Cmd.Flags().BoolVar(&force, "force", false, "(optional) argocd application force option, default: false")
 	Cmd.Flags().StringVar(&executor, "executor", "", "(required) executor name who deployed the service")
+	Cmd.Flags().StringVar(&email, "email", "", "(required) executor email who deployed the service")
 	Cmd.Flags().StringVar(&repository, "repository", "", "(required) git repository url")
 	Cmd.Flags().StringVar(&tag, "tag", "", "(required) tag name to deploy")
 	Cmd.Flags().StringVar(&ticket, "ticket", "", "(required) ticket name")
