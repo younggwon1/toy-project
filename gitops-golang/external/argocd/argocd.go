@@ -67,8 +67,8 @@ func (c *Client) NewAppClient() (*AppClient, error) {
 
 func (ac *AppClient) ExistsArgoCDAppCheck(r *string) error {
 	// check if argocd app is null
-	if r == nil {
-		return fmt.Errorf("failed if argocd app name is null")
+	if r == nil || *r == "" {
+		return fmt.Errorf("failed because of argocd app name is set to an empty value")
 	}
 
 	// check if a specific argocd app exists
@@ -126,7 +126,9 @@ func (ac *AppClient) Sync(s *AppSyncRequest, executor, gitUrl, tag, ticket, argo
 			// set audit data
 			if response.Status.OperationState != nil {
 				audit = &config.Auditor{
-					Version: "v0.0.1",
+					Version: config.Version{
+						Version: "v0.0.1",
+					},
 					Metadata: config.Metadata{
 						Name: *s.Name,
 						Label: config.Label{

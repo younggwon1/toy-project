@@ -22,6 +22,10 @@ func TestRegex(t *testing.T) {
 	expected := false
 	assert.Equal(t, expected, result)
 
+	result = ValidateTicket("N/A")
+	expected = false
+	assert.Equal(t, expected, result)
+
 	result = ValidateTicket("CR-XX")
 	expected = false
 	assert.Equal(t, expected, result)
