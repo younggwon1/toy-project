@@ -8,4 +8,4 @@
 
 - createDt >= 1 month && re-deploy > 1 weeks && no traffic -> delete
 
-go run main.go manager -n {namespace}
+go run main.go down --namespace {namespace}
