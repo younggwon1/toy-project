@@ -2,7 +2,8 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/younggwon1/k8s-resource-manager/cli/manager"
+
+	"github.com/younggwon1/k8s-resource-manager/cli/down"
 )
 
 var RootCmd = &cobra.Command{
@@ -13,6 +14,6 @@ var RootCmd = &cobra.Command{
 func init() {
 	cobra.EnableCommandSorting = false
 	RootCmd.AddCommand(
-		manager.Cmd,
+		down.Cmd,
 	)
 }
