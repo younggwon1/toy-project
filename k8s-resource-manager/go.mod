@@ -1,9 +1,10 @@
 module github.com/younggwon1/k8s-resource-manager
 
-go 1.19
+go 1.21
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.0
 	k8s.io/apimachinery v0.29.0
 	k8s.io/client-go v0.29.0
@@ -14,6 +15,7 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 )
 
 require (
