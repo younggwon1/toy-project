@@ -81,9 +81,6 @@ var Cmd = &cobra.Command{
 		logger.Info().Msg("succeed argocd app client")
 
 		// validate jira ticket
-		if ticket == "" {
-			return fmt.Errorf("failed because of `entered ticket` was set to an empty value")
-		}
 		result := util.ValidateTicket(ticket)
 		if !result {
 			return fmt.Errorf("failed to validate the entered jira ticket: %s", ticket)
