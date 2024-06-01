@@ -78,7 +78,7 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		logger.Info().Msg("succeed argocd app client")
+		logger.Info().Msgf("created argocd app client with address: %s", server)
 
 		// validate jira ticket
 		result := util.ValidateTicket(ticket)
