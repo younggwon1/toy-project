@@ -1,4 +1,4 @@
-package down
+package delete
 
 import (
 	"fmt"
@@ -14,12 +14,11 @@ import (
 
 var (
 	namespace string
-	names     []string
 )
 
 var Cmd = &cobra.Command{
-	Use:   "down",
-	Short: "kuberenetes resource down operations",
+	Use:   "delete",
+	Short: "kuberenetes resource delete operations",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// init logger
 		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
@@ -47,35 +46,20 @@ var Cmd = &cobra.Command{
 		}
 		logger.Info().Msg("validate kubernetes namespace")
 
-		var message slack.Template
-
-		// scale down error deployment
-		if len(names) != 0 {
-			err = cli.ScaleDown(names, namespace)
-			if err != nil {
-				return err
-			}
-			logger.Info().Msgf("succeed to scale down %s deployment in %s namespace", names, namespace)
-			message = slack.Template{
-				Name:      names,
-				Namespace: namespace,
-				Time:      time.Now().Format("2006-01-02 15:04:05"),
-			}
-		} else {
-			downNames, err := cli.AllScaleDown(namespace)
-			if err != nil {
-				return err
-			}
-			message = slack.Template{
-				Name:      downNames,
-				Namespace: namespace,
-				Time:      time.Now().Format("2006-01-02 15:04:05"),
-			}
-			logger.Info().Msgf("succeed to scale down deployments in %s namespace", namespace)
+		// delete replica 0 deployment
+		deleteNames, err := cli.AllDelete(namespace)
+		if err != nil {
+			return err
 		}
+		logger.Info().Msgf("succeed to delete replica 0 deployments in %s namespace", namespace)
 
 		// send slack message
-		tmpl := `{"status": "Scale Down To Zero", "name": "{{.Name}}", "namespace": "{{.Namespace}}", "time": "{{.Time}}"}`
+		tmpl := `{"status": "Delete", "name": "{{.Name}}", "namespace": "{{.Namespace}}","time": "{{.Time}}"}`
+		message := slack.Template{
+			Name:      deleteNames,
+			Namespace: namespace,
+			Time:      time.Now().Format("2006-01-02 15:04:05"),
+		}
 		err = slack.SendMessage(slackWebHookUrl, tmpl, message)
 		if err != nil {
 			return err
@@ -88,5 +72,4 @@ var Cmd = &cobra.Command{
 
 func init() {
 	Cmd.Flags().StringVar(&namespace, "namespace", "", "(required) kubernetes namespace")
-	Cmd.Flags().StringSliceVar(&names, "names", []string{}, "(optional) kubernetes deployment name")
 }
