@@ -1,7 +1,11 @@
 package kubernetes
 
 import (
+	"bufio"
 	"context"
+	"fmt"
+	"os"
+	"strings"
 	"sync"
 
 	v1 "k8s.io/api/autoscaling/v1"
@@ -39,31 +43,44 @@ func (c *Client) AllScaleDown(namespace string) ([]string, error) {
 }
 
 func (c *Client) ScaleDown(names []string, namespace string) error {
+	// request confirmation from the user
+	fmt.Printf("Are you sure you want to down scale the deployment '%s' in namespace '%s'? (y/n): ", names, namespace)
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	response = strings.TrimSpace(response)
+
 	// scale down deployments
-	if len(names) != 0 {
-		wg := sync.WaitGroup{}
-		for _, name := range names {
-			wg.Add(1)
-			go func(name string) {
-				defer wg.Done()
-				scale := &v1.Scale{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      name,
-						Namespace: namespace,
-					},
-					Spec: v1.ScaleSpec{
-						Replicas: 0,
-					},
-				}
-				_, err := c.client.AppsV1().Deployments(namespace).UpdateScale(context.TODO(), name, scale, metav1.UpdateOptions{})
-				if err != nil {
-					c.logger.Error().Err(err).Msgf("failed to scale down %s deployments", name)
-				}
-			}(name)
+	if response == "y" {
+		if len(names) != 0 {
+			wg := sync.WaitGroup{}
+			for _, name := range names {
+				wg.Add(1)
+				go func(name string) {
+					defer wg.Done()
+					scale := &v1.Scale{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      name,
+							Namespace: namespace,
+						},
+						Spec: v1.ScaleSpec{
+							Replicas: 0,
+						},
+					}
+					_, err := c.client.AppsV1().Deployments(namespace).UpdateScale(context.TODO(), name, scale, metav1.UpdateOptions{})
+					if err != nil {
+						c.logger.Error().Err(err).Msgf("failed to scale down %s deployments", name)
+					}
+				}(name)
+			}
+			wg.Wait()
+		} else {
+			c.logger.Info().Msg("failed to find scale down deployments")
 		}
-		wg.Wait()
 	} else {
-		c.logger.Info().Msg("failed to find scale down deployments")
+		return fmt.Errorf("aborted scale down of deployment")
 	}
 
 	return nil
@@ -100,23 +117,36 @@ func (c *Client) AllDelete(namespace string) ([]string, error) {
 }
 
 func (c *Client) Delete(names []string, namespace string) error {
+	// request confirmation from the user
+	fmt.Printf("Are you sure you want to delete the deployment '%s' in namespace '%s'? (y/n): ", names, namespace)
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	response = strings.TrimSpace(response)
+
 	// delete deployments
-	if len(names) != 0 {
-		wg := sync.WaitGroup{}
-		for _, name := range names {
-			wg.Add(1)
-			go func(name string) {
-				defer wg.Done()
-				// Delete the deployment
-				err := c.client.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-				if err != nil {
-					c.logger.Error().Err(err).Msgf("failed to delete %s deployments", name)
-				}
-			}(name)
+	if response == "y" {
+		if len(names) != 0 {
+			wg := sync.WaitGroup{}
+			for _, name := range names {
+				wg.Add(1)
+				go func(name string) {
+					defer wg.Done()
+					// Delete the deployment
+					err := c.client.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+					if err != nil {
+						c.logger.Error().Err(err).Msgf("failed to delete %s deployments", name)
+					}
+				}(name)
+			}
+			wg.Wait()
+		} else {
+			c.logger.Info().Msg("failed to find delete deployments")
 		}
-		wg.Wait()
 	} else {
-		c.logger.Info().Msg("failed to find delete deployments")
+		return fmt.Errorf("aborted deletion of deployment")
 	}
 
 	return nil
