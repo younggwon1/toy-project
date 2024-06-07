@@ -63,22 +63,6 @@ var Cmd = &cobra.Command{
 		if token == "" {
 			return fmt.Errorf("failed because of `argocd token` was set to an empty value")
 		}
-		// init argocd client
-		cli, err := argocd.NewClient(&argocd.Connection{
-			Address: server,
-			Token:   token,
-		})
-		if err != nil {
-			return err
-		}
-		logger.Info().Msgf("created argocd client with address: %s", server)
-
-		// init argocd app client
-		appCli, err := cli.NewAppClient()
-		if err != nil {
-			return err
-		}
-		logger.Info().Msgf("created argocd app client with address: %s", server)
 
 		// validate jira ticket
 		result := util.ValidateTicket(ticket)
@@ -97,6 +81,23 @@ var Cmd = &cobra.Command{
 			return err
 		}
 		logger.Info().Msg("succeed to check the entered jira ticket status for deploying")
+		
+		// init argocd client
+		cli, err := argocd.NewClient(&argocd.Connection{
+			Address: server,
+			Token:   token,
+		})
+		if err != nil {
+			return err
+		}
+		logger.Info().Msgf("created argocd client with address: %s", server)
+
+		// init argocd app client
+		appCli, err := cli.NewAppClient()
+		if err != nil {
+			return err
+		}
+		logger.Info().Msgf("created argocd app client with address: %s", server)
 
 		// sync argocd app
 		argoCDAppUrl, err := url.JoinPath("https://", server, "applications", name)
