@@ -3,14 +3,10 @@ package argocd
 import (
 	"context"
 	"fmt"
-	"path"
-	"time"
 
 	"github.com/argoproj/argo-cd/v2/pkg/apiclient"
 	"github.com/argoproj/argo-cd/v2/pkg/apiclient/application"
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-
-	"github.com/younggwon1/gitops-golang/config"
 )
 
 type Connection struct {
@@ -82,11 +78,11 @@ func (ac *AppClient) ExistsArgoCDAppCheck(r *string) error {
 	return nil
 }
 
-func (ac *AppClient) Sync(s *AppSyncRequest, executor, gitUrl, tag, ticket, argoCDAppUrl string) (*config.Auditor, error) {
+func (ac *AppClient) Sync(s *AppSyncRequest) error {
 	// check if argocd app exists
 	err := ac.ExistsArgoCDAppCheck(s.Name)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// sync a specific argocd app
@@ -101,69 +97,8 @@ func (ac *AppClient) Sync(s *AppSyncRequest, executor, gitUrl, tag, ticket, argo
 		},
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// init ticker
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	// check argocd app status per each tick after sync
-	loop := true
-	var audit *config.Auditor
-	for loop {
-		select {
-		case <-context.Background().Done():
-			loop = false
-		case <-ticker.C:
-			// get argocd app status
-			response, err := ac.appClient.Get(context.Background(), &application.ApplicationQuery{
-				Name: s.Name,
-			})
-			if err != nil {
-				return nil, err
-			}
-			// set audit data
-			if response.Status.OperationState != nil {
-				audit = &config.Auditor{
-					Version: config.Version{
-						Version: "v0.0.1",
-					},
-					Metadata: config.Metadata{
-						Name: *s.Name,
-						Label: config.Label{
-							Executor: executor,
-						},
-					},
-					Spec: config.Spec{
-						Source: config.Source{
-							Code: config.Code{
-								Repo: gitUrl,
-								Rev:  tag,
-							},
-							Helm: config.Helm{
-								Repo:  response.Status.OperationState.SyncResult.Source.RepoURL,
-								Chart: path.Join(response.Status.OperationState.SyncResult.Source.Path, response.Status.OperationState.SyncResult.Source.Helm.ValueFiles[0]),
-								Rev:   response.Status.OperationState.SyncResult.Revision,
-							},
-							Jira: config.Jira{
-								Ticket: config.Ticket{
-									CR: ticket,
-								},
-							},
-						},
-						Destination: config.Destination{
-							ArgoCD: config.ArgoCD{
-								URL:    argoCDAppUrl,
-								Synced: response.Status.OperationState.FinishedAt.Time.Format("2006-01-02 15:04:05"),
-							},
-						},
-					},
-				}
-				loop = false
-			}
-		}
-	}
-
-	return audit, nil
+	return nil
 }

@@ -1,0 +1,27 @@
+spec:
+  kubernetes:
+    deploys:
+    - helm:
+        url: "helm-url-1"
+        org: "helm-org-1"
+        repo: "helm-repo-1"
+        values:
+        - file: "value-file-1"
+        - file: "value-file-2"
+      argocd:
+        url: "argocd-url"
+        apps:
+        - name: "app-name-1"
+        - name: "app-name-2"
+  amplify:
+    deploys:
+    - app-id: app-id-1
+      branch: branch-name-1
+    - app-id: app-id-2
+      branch: branch-name-2
+  cdn:
+    deploys:
+    - s3-bucket: "bucket-name-1"
+      cloudfront-distribution-id: "distribution-id-1"
+    - s3-bucket: "bucket-name-2"
+      cloudfront-distribution-id: "distribution-id-2"
