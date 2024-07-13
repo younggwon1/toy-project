@@ -24,11 +24,6 @@ The Case I Think of image value to modify.
 --values "{\"image.cronjobs[1].tag\":\"dev-14b5fa\"}"
 */
 
-/*
-cronjobs[0], cronjobs[1] 이러한 list 형식의 input 이 들어올 때, 이러한 list 형식의 input 을 어떻게 처리할 것인가?
-이 부분에 대한 로직 구현이 필요해보인다.
-*/
-
 func TestModify(t *testing.T) {
 	// set the target value to be modified
 	targetValues := `image:

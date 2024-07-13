@@ -1,13 +1,48 @@
-GITOPS CLI를 대체할 목록
-1. [gitopscli](https://github.com/baloise/gitopscli/tree/master)
+# gitops golang
+> This is a service implemented so that multiple deployment pipelines can be easily deployed using one tool.
 
-필요한 package
-- github.com/go-git/go-git/v5 v5.11.0
-- github.com/google/go-github/v58 v58.0.0
 
-ArgoCD CLI 를 대체할 목록
-1. replace argocd cli sync
-2. replace argocd notification
+gitops golang cli
+```
+go run main.go deploy \
+    --user "${git user}" \
+    --email "${git email}" \
+    --values image values \
+    --spec spec path
+```
 
-필요한 package
-- github.com/argoproj/argo-cd/v2 v2.10.9
+example
+```
+go run main.go deploy \
+    --user "younggwon" \
+    --email "younggwon@aaa.bbb" \
+    --values "{\"image.tag\":\"dev-12345\"}" \
+    --spec "../../deploy-dev.yaml"
+```
+
+
+### Deploy to Kubernetes
+#### Required env
+1. GIT_USERNAME
+2. GIT_PASSWORD
+3. ARGOCD_SERVER
+4. ARGOCD_TOKEN
+
+#### Required Deploy Template
+```
+spec:
+  kubernetes:
+    deploys:
+    - helm:
+        url: "helm-url-1"
+        org: "helm-org-1"
+        repo: "helm-repo-1"
+        values:
+        - file: "value-file-1"
+        - file: "value-file-2"
+      argocd:
+        url: "argocd-url"
+        apps:
+        - name: "app-name-1"
+        - name: "app-name-2"
+```
