@@ -1,14 +1,18 @@
 # gitops golang
+
 > This is a service implemented so that multiple deployment pipelines can be easily deployed using one tool.
 
 ### Deploy to Kubernetes
+
 #### Required env
+
 1. GIT_USERNAME
 2. GIT_PASSWORD
 3. ARGOCD_SERVER
 4. ARGOCD_TOKEN
 
 #### Required Template for Deploying to Kubernetes
+
 ```
 spec:
   kubernetes:
@@ -28,6 +32,7 @@ spec:
 ```
 
 #### gitops golang cli for deploying to kubernetes
+
 ```
 go run main.go deploy \
     --user "${git user}" \
@@ -37,6 +42,7 @@ go run main.go deploy \
 ```
 
 example
+
 ```
 go run main.go deploy \
     --user "younggwon" \
@@ -45,8 +51,18 @@ go run main.go deploy \
     --spec "../../deploy-dev.yaml"
 ```
 
+### Deploy to Amplify
 
+#### gitops golang cli for deploying to kubernetes
 
+```
+go run main.go deploy \
+    --spec spec path
+```
 
+example
+
+```
 go run main.go deploy \
     --spec "../../deploy-dev.yaml"
+```
