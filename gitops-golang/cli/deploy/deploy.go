@@ -28,8 +28,12 @@ var (
 	force  bool
 )
 
-type DeployProcess interface {
-	kubernetes(logger *zerolog.Logger) error
+type Kubernetes interface {
+	DeployKubernetes(logger *zerolog.Logger) error
+}
+
+type Amplify interface {
+	DeployAmplify(logger *zerolog.Logger) error
 }
 
 type DeployKubernetesFlags struct {
@@ -40,8 +44,21 @@ type DeployKubernetesFlags struct {
 	kubernetesDeploysConfig interface{}
 }
 
-func (dkf *DeployKubernetesFlags) kubernetes(logger *zerolog.Logger) error {
+type DeployAmplifyFlags struct {
+	amplifyDeploysConfig interface{}
+}
+
+func (dkf *DeployKubernetesFlags) DeployKubernetes(logger *zerolog.Logger) error {
 	err := deployer.KubernetesProcess(logger, dkf.user, dkf.email, dkf.values, dkf.argoCDFlags, dkf.kubernetesDeploysConfig.([]c.KubernetesDeploy))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (daf *DeployAmplifyFlags) DeployAmplify(logger *zerolog.Logger) error {
+	err := deployer.AmplifyProcess(logger, daf.amplifyDeploysConfig.([]c.AmplifyDeploy))
 	if err != nil {
 		return err
 	}
@@ -67,7 +84,7 @@ var Cmd = &cobra.Command{
 		logger.Info().Msgf("read config from %s", spec)
 
 		if cfg.Spec.Kubernetes != nil {
-			var dp DeployProcess
+			var k Kubernetes
 			// set kubernetes flags
 			k8sDeployFlags := DeployKubernetesFlags{
 				user:   user,
@@ -84,8 +101,23 @@ var Cmd = &cobra.Command{
 			}
 
 			// deploy kubernetes
-			dp = &k8sDeployFlags
-			err := dp.kubernetes(&logger)
+			k = &k8sDeployFlags
+			err := k.DeployKubernetes(&logger)
+			if err != nil {
+				return err
+			}
+		}
+
+		if cfg.Spec.Amplify != nil {
+			var a Amplify
+			// set amplify flags
+			amplifyDeployFlags := DeployAmplifyFlags{
+				amplifyDeploysConfig: cfg.Spec.Amplify.AmplifyDeploys,
+			}
+
+			//deploy amplify
+			a = &amplifyDeployFlags
+			err := a.DeployAmplify(&logger)
 			if err != nil {
 				return err
 			}
@@ -93,10 +125,6 @@ var Cmd = &cobra.Command{
 
 		if cfg.Spec.CDN != nil {
 			logger.Info().Msg("deploy cdn")
-		}
-
-		if cfg.Spec.Amplify != nil {
-			logger.Info().Msg("deploy amplify")
 		}
 
 		return nil

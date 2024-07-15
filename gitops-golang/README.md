@@ -1,34 +1,18 @@
 # gitops golang
+
 > This is a service implemented so that multiple deployment pipelines can be easily deployed using one tool.
 
-
-gitops golang cli
-```
-go run main.go deploy \
-    --user "${git user}" \
-    --email "${git email}" \
-    --values image values \
-    --spec spec path
-```
-
-example
-```
-go run main.go deploy \
-    --user "younggwon" \
-    --email "younggwon@aaa.bbb" \
-    --values "{\"image.tag\":\"dev-12345\"}" \
-    --spec "../../deploy-dev.yaml"
-```
-
-
 ### Deploy to Kubernetes
+
 #### Required env
+
 1. GIT_USERNAME
 2. GIT_PASSWORD
 3. ARGOCD_SERVER
 4. ARGOCD_TOKEN
 
-#### Required Deploy Template
+#### Required Template for Deploying to Kubernetes
+
 ```
 spec:
   kubernetes:
@@ -45,4 +29,40 @@ spec:
         apps:
         - name: "app-name-1"
         - name: "app-name-2"
+```
+
+#### gitops golang cli for deploying to kubernetes
+
+```
+go run main.go deploy \
+    --user "${git user}" \
+    --email "${git email}" \
+    --values image values \
+    --spec spec path
+```
+
+example
+
+```
+go run main.go deploy \
+    --user "younggwon" \
+    --email "younggwon@aaa.bbb" \
+    --values "{\"image.tag\":\"dev-12345\"}" \
+    --spec "../../deploy-dev.yaml"
+```
+
+### Deploy to Amplify
+
+#### gitops golang cli for deploying to kubernetes
+
+```
+go run main.go deploy \
+    --spec spec path
+```
+
+example
+
+```
+go run main.go deploy \
+    --spec "../../deploy-dev.yaml"
 ```
