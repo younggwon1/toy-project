@@ -1,8 +1,33 @@
 # gitops golang
 > This is a service implemented so that multiple deployment pipelines can be easily deployed using one tool.
 
+### Deploy to Kubernetes
+#### Required env
+1. GIT_USERNAME
+2. GIT_PASSWORD
+3. ARGOCD_SERVER
+4. ARGOCD_TOKEN
 
-gitops golang cli
+#### Required Template for Deploying to Kubernetes
+```
+spec:
+  kubernetes:
+    deploys:
+    - helm:
+        url: "helm-url-1"
+        org: "helm-org-1"
+        repo: "helm-repo-1"
+        values:
+        - file: "value-file-1"
+        - file: "value-file-2"
+      argocd:
+        url: "argocd-url"
+        apps:
+        - name: "app-name-1"
+        - name: "app-name-2"
+```
+
+#### gitops golang cli for deploying to kubernetes
 ```
 go run main.go deploy \
     --user "${git user}" \
@@ -21,28 +46,7 @@ go run main.go deploy \
 ```
 
 
-### Deploy to Kubernetes
-#### Required env
-1. GIT_USERNAME
-2. GIT_PASSWORD
-3. ARGOCD_SERVER
-4. ARGOCD_TOKEN
 
-#### Required Deploy Template
-```
-spec:
-  kubernetes:
-    deploys:
-    - helm:
-        url: "helm-url-1"
-        org: "helm-org-1"
-        repo: "helm-repo-1"
-        values:
-        - file: "value-file-1"
-        - file: "value-file-2"
-      argocd:
-        url: "argocd-url"
-        apps:
-        - name: "app-name-1"
-        - name: "app-name-2"
-```
+
+go run main.go deploy \
+    --spec "../../deploy-dev.yaml"
