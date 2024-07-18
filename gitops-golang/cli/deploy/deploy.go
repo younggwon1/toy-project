@@ -3,11 +3,13 @@ package deploy
 import (
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/service/amplify/types"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
 	c "github.com/younggwon1/gitops-golang/config"
 	"github.com/younggwon1/gitops-golang/external/argocd"
+	"github.com/younggwon1/gitops-golang/external/aws"
 	"github.com/younggwon1/gitops-golang/server/deployer"
 )
 
@@ -26,6 +28,11 @@ var (
 	dryRun bool
 	prune  bool
 	force  bool
+
+	// amplify flags
+	jobType       string
+	commitId      *string
+	commitMessage *string
 )
 
 type Kubernetes interface {
@@ -45,6 +52,7 @@ type DeployKubernetesFlags struct {
 }
 
 type DeployAmplifyFlags struct {
+	amplifyFlags         *aws.StartAmplifyJobInput
 	amplifyDeploysConfig interface{}
 }
 
@@ -58,7 +66,7 @@ func (dkf *DeployKubernetesFlags) DeployKubernetes(logger *zerolog.Logger) error
 }
 
 func (daf *DeployAmplifyFlags) DeployAmplify(logger *zerolog.Logger) error {
-	err := deployer.AmplifyProcess(logger, daf.amplifyDeploysConfig.([]c.AmplifyDeploy))
+	err := deployer.AmplifyProcess(logger, daf.amplifyFlags, daf.amplifyDeploysConfig.([]c.AmplifyDeploy))
 	if err != nil {
 		return err
 	}
@@ -113,6 +121,11 @@ var Cmd = &cobra.Command{
 			// set amplify flags
 			amplifyDeployFlags := DeployAmplifyFlags{
 				amplifyDeploysConfig: cfg.Spec.Amplify.AmplifyDeploys,
+				amplifyFlags: &aws.StartAmplifyJobInput{
+					JobType:       types.JobType(jobType),
+					CommitId:      commitId,
+					CommitMessage: commitMessage,
+				},
 			}
 
 			//deploy amplify
@@ -139,4 +152,7 @@ func init() {
 	Cmd.Flags().BoolVar(&dryRun, "dryRun", false, "(optional) argocd application dry run option, default: false")
 	Cmd.Flags().BoolVar(&prune, "prune", false, "(optional) argocd application prune option, default: false")
 	Cmd.Flags().BoolVar(&force, "force", false, "(optional) argocd application force option, default: false")
+	Cmd.Flags().StringVar(&jobType, "jobType", "RELEASE", "amplify job type, default: RELEASE")
+	Cmd.Flags().StringVar(commitId, "commitId", "", "amplify commit id")
+	Cmd.Flags().StringVar(commitMessage, "commitMessage", "", "amplify commit message")
 }
