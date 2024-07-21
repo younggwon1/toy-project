@@ -17,13 +17,13 @@ go run main.go down --namespace "rnd-test"
 #### 1.2 Enter the name of the deployment whose replica number you want to reduce to 0 and the namespace it belongs to.
 
 ```
-go run main.go down --names {deployment name} --names {deployment name} ... --namespace {namespace}
+go run main.go down --names "{deployment name one},{deployment name two},..."--namespace {namespace}
 ```
 
 EX)
 ```
 go run main.go down --names "test1" --namespace "rnd-test"
-go run main.go down --names "test1" --names "test2" --namespace "rnd-test"
+go run main.go down --names "test1,test2" --namespace "rnd-test"
 ```
 
 ### 2. Delete
