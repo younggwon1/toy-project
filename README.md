@@ -4,3 +4,4 @@ toy projects are projects for considered stable and will used successfully in pr
 
 - k8s-resource-manager
 - gitops-golang
+- cloud-gc (cgc)
